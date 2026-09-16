@@ -45,6 +45,41 @@ describe('games data-access helpers', () => {
         expect(all[0].publisher).toEqual({ id: expect.any(Number), name: 'Pub One' });
     });
 
+    it('filters games by publisher while preserving title ordering', async () => {
+        const [category] = await db
+            .insert(categories)
+            .values({ name: 'Strategy', description: 'cat' })
+            .returning({ id: categories.id });
+        const [publisherOne, publisherTwo] = await db
+            .insert(publishers)
+            .values([
+                { name: 'Pub One', description: 'pub' },
+                { name: 'Pub Two', description: 'pub' },
+            ])
+            .returning({ id: publishers.id });
+        await db.insert(games).values([
+            {
+                title: 'Zeta Game',
+                description: 'Description',
+                starRating: 4.2,
+                categoryId: category.id,
+                publisherId: publisherOne.id,
+            },
+            {
+                title: 'Alpha Game',
+                description: 'Description',
+                starRating: 4.2,
+                categoryId: category.id,
+                publisherId: publisherTwo.id,
+            },
+        ]);
+
+        const filtered = await getAllGames(db, publisherOne.id);
+
+        expect(filtered.map((game) => game.title)).toEqual(['Zeta Game']);
+        expect(filtered[0].publisher?.id).toBe(publisherOne.id);
+    });
+
     it('returns all game ids ordered by title', async () => {
         await seedGames(db, 3);
         const ids = await getAllGameIds(db);

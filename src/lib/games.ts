@@ -50,9 +50,13 @@ function baseGamesQuery(db: Database) {
         .leftJoin(publishers, eq(games.publisherId, publishers.id));
 }
 
-/** All games ordered by title. */
-export async function getAllGames(db: Database): Promise<Game[]> {
-    const rows = await baseGamesQuery(db).orderBy(asc(games.title));
+/** All games ordered by title, optionally filtered by publisher. */
+export async function getAllGames(db: Database, publisherId?: number): Promise<Game[]> {
+    const query = baseGamesQuery(db);
+    const rows = await (publisherId === undefined
+        ? query
+        : query.where(eq(publishers.id, publisherId))
+    ).orderBy(asc(games.title));
     return rows.map(mapGame);
 }
 
